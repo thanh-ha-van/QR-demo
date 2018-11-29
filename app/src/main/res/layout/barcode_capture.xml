@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<LinearLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@+id/topLayout"
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:keepScreenOn="true">
+
+    <com.oakenshield.thanhh.qrdemo.googleScan.camera.CameraSourcePreview
+            android:id="@+id/preview"
+            android:layout_weight="1"
+            android:layout_width="match_parent"
+            android:layout_height="0dp">
+
+        <com.oakenshield.thanhh.qrdemo.googleScan.camera.GraphicOverlay
+                android:id="@+id/graphicOverlay"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"/>
+
+    </com.oakenshield.thanhh.qrdemo.googleScan.camera.CameraSourcePreview>
+
+    <TextView android:layout_width="match_parent"
+              android:padding="10dp"
+              android:id="@+id/tv_current_code"
+              android:text="Current code: "
+              android:layout_height="wrap_content"/>
+</LinearLayout>
