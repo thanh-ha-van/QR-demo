@@ -93,11 +93,7 @@ public final class BarcodeCaptureActivity
         barcodeDetector.setProcessor(
                 new MultiProcessor.Builder<>(barcodeFactory).build());
 
-        CameraSource.Builder builder = new CameraSource.Builder(getApplicationContext(), barcodeDetector)
-                .setFacing(CameraSource.CAMERA_FACING_BACK)
-                .setRequestedPreviewSize(1600, 1024)
-                .setRequestedFps(10.0f);
-
+        CameraSource.Builder builder = new CameraSource.Builder(barcodeDetector);
         mCameraSource = builder.build();
     }
 

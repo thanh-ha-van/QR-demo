@@ -2,14 +2,11 @@
 package com.oakenshield.thanhh.qrdemo.googleScan.camera;
 
 import android.annotation.SuppressLint;
-import android.content.Context;
 import android.graphics.ImageFormat;
 import android.hardware.Camera;
 import android.hardware.Camera.CameraInfo;
 import android.os.SystemClock;
-import android.util.Log;
 import android.view.SurfaceHolder;
-import android.view.SurfaceView;
 import com.google.android.gms.common.images.Size;
 import com.google.android.gms.vision.Detector;
 import com.google.android.gms.vision.Frame;
@@ -17,41 +14,20 @@ import com.google.android.gms.vision.Frame;
 import java.io.IOException;
 import java.lang.Thread.State;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@SuppressWarnings("deprecation")
+
 public class CameraSource {
-    @SuppressLint("InlinedApi")
-    public static final int CAMERA_FACING_BACK = CameraInfo.CAMERA_FACING_BACK;
 
-    private static final String TAG = "OpenCameraSource";
-
-    private static final float ASPECT_RATIO_TOLERANCE = 0.01f;
-
-    private Context mContext;
 
     private final Object mCameraLock = new Object();
 
     // Guarded by mCameraLock
     private Camera mCamera;
 
-    private int mFacing = CAMERA_FACING_BACK;
-
-    private int mRotation;
-
     private Size mPreviewSize;
-
-    // These values may be requested by the caller.  Due to hardware limitations, we may need to
-    // select close, but not exactly the same values for these.
-    private float mRequestedFps = 30.0f;
-    private int mRequestedPreviewWidth = 1024;
-    private int mRequestedPreviewHeight = 768;
-
-
-    private String mFocusMode = Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE;
 
     private Thread mProcessingThread;
     private FrameProcessingRunnable mFrameProcessor;
@@ -63,25 +39,8 @@ public class CameraSource {
         private final Detector<?> mDetector;
         private CameraSource mCameraSource = new CameraSource();
 
-        public Builder(Context context, Detector<?> detector) {
+        public Builder(Detector<?> detector) {
             mDetector = detector;
-            mCameraSource.mContext = context;
-        }
-
-        public Builder setRequestedFps(float fps) {
-            mCameraSource.mRequestedFps = fps;
-            return this;
-        }
-
-        public Builder setRequestedPreviewSize(int width, int height) {
-            mCameraSource.mRequestedPreviewWidth = width;
-            mCameraSource.mRequestedPreviewHeight = height;
-            return this;
-        }
-
-        public Builder setFacing(int facing) {
-            mCameraSource.mFacing = facing;
-            return this;
         }
 
         public CameraSource build() {
@@ -95,24 +54,6 @@ public class CameraSource {
             stop();
             mFrameProcessor.release();
         }
-    }
-
-    public CameraSource start() throws IOException {
-        synchronized (mCameraLock) {
-            if (mCamera != null) {
-                return this;
-            }
-            mCamera = createCamera();
-
-            SurfaceView mDummySurfaceView = new SurfaceView(mContext);
-            mCamera.setPreviewDisplay(mDummySurfaceView.getHolder());
-            mCamera.startPreview();
-
-            mProcessingThread = new Thread(mFrameProcessor);
-            mFrameProcessor.setActive(true);
-            mProcessingThread.start();
-        }
-        return this;
     }
 
     public CameraSource start(SurfaceHolder surfaceHolder) throws IOException {
@@ -136,17 +77,12 @@ public class CameraSource {
             mFrameProcessor.setActive(false);
             if (mProcessingThread != null) {
                 try {
-                    // Wait for the thread to complete to ensure that we can't have multiple threads
-                    // executing at the same time (i.e., which would happen if we called start too
-                    // quickly after stop).
                     mProcessingThread.join();
-                } catch (InterruptedException e) {
-                    Log.d(TAG, "Frame processing thread interrupted on release.");
+                } catch (InterruptedException ignored) {
+
                 }
                 mProcessingThread = null;
             }
-
-            // clear the buffer to prevent oom exceptions
             mBytesToByteBuffer.clear();
 
             if (mCamera != null) {
@@ -156,8 +92,8 @@ public class CameraSource {
 
                     mCamera.setPreviewDisplay(null);
 
-                } catch (Exception e) {
-                    Log.e(TAG, "Failed to clear camera preview: " + e);
+                } catch (Exception ignored) {
+
                 }
                 mCamera.release();
                 mCamera = null;
@@ -165,9 +101,6 @@ public class CameraSource {
         }
     }
 
-    /**
-     * Returns the preview size that is currently in use by the underlying camera.
-     */
     Size getPreviewSize() {
         return mPreviewSize;
     }
@@ -177,13 +110,14 @@ public class CameraSource {
 
     @SuppressLint("InlinedApi")
     private Camera createCamera() {
-        int requestedCameraId = getIdForRequestedCamera(mFacing);
+        int requestedCameraId = getIdForRequestedCamera();
         Camera camera = Camera.open(requestedCameraId);
 
-        SizePair sizePair = selectSizePair(camera, mRequestedPreviewWidth, mRequestedPreviewHeight);
+        SizePair sizePair = new SizePair();
 
         Size pictureSize = sizePair.pictureSize();
         mPreviewSize = sizePair.previewSize();
+        float mRequestedFps = 30.0f;
 
         int[] previewFpsRange = selectPreviewFpsRange(camera, mRequestedFps);
 
@@ -196,16 +130,13 @@ public class CameraSource {
         parameters.setPreviewSize(mPreviewSize.getWidth(), mPreviewSize.getHeight());
         parameters.setPreviewFpsRange(
                 previewFpsRange[Camera.Parameters.PREVIEW_FPS_MIN_INDEX],
-                previewFpsRange[Camera.Parameters.PREVIEW_FPS_MAX_INDEX]);
+                previewFpsRange[Camera.Parameters.PREVIEW_FPS_MAX_INDEX]
+        );
         parameters.setPreviewFormat(ImageFormat.NV21);
-
-        setRotation(camera, parameters, requestedCameraId);
-
-        if (mFocusMode != null) {
-            parameters.setFocusMode(mFocusMode);
-        }
-        // setting mFocusMode to the one set in the params
-        mFocusMode = parameters.getFocusMode();
+        camera.setDisplayOrientation(90);
+        parameters.setRotation(90);
+        String mFocusMode = Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE;
+        parameters.setFocusMode(mFocusMode);
         camera.setParameters(parameters);
 
         // Four frame buffers are needed for working with the camera:
@@ -222,50 +153,27 @@ public class CameraSource {
         return camera;
     }
 
-    private static int getIdForRequestedCamera(int facing) {
+    private static int getIdForRequestedCamera() {
         CameraInfo cameraInfo = new CameraInfo();
         for (int i = 0; i < Camera.getNumberOfCameras(); ++i) {
             Camera.getCameraInfo(i, cameraInfo);
-            if (cameraInfo.facing == facing) {
+            if (cameraInfo.facing == CameraInfo.CAMERA_FACING_BACK) {
                 return i;
             }
         }
         return -1;
     }
 
-    private static SizePair selectSizePair(Camera camera, int desiredWidth, int desiredHeight) {
-        List<SizePair> validPreviewSizes = generateValidPreviewSizeList(camera);
-
-        // The method for selecting the best size is to minimize the sum of the differences between
-        // the desired values and the actual values for width and height.  This is certainly not the
-        // only way to select the best size, but it provides a decent tradeoff between using the
-        // closest aspect ratio vs. using the closest pixel area.
-        SizePair selectedPair = null;
-        int minDiff = Integer.MAX_VALUE;
-        for (SizePair sizePair : validPreviewSizes) {
-            Size size = sizePair.previewSize();
-            int diff = Math.abs(size.getWidth() - desiredWidth) +
-                    Math.abs(size.getHeight() - desiredHeight);
-            if (diff < minDiff) {
-                selectedPair = sizePair;
-                minDiff = diff;
-            }
-        }
-
-        return selectedPair;
-    }
-
-
     private static class SizePair {
         private Size mPreview;
         private Size mPicture;
 
-        SizePair(android.hardware.Camera.Size previewSize,
-                 android.hardware.Camera.Size pictureSize) {
-            mPreview = new Size(previewSize.width, previewSize.height);
-            if (pictureSize != null) {
-                mPicture = new Size(pictureSize.width, pictureSize.height);
-            }
+        int mRequestedPreviewWidth = 1024;
+        int mRequestedPreviewHeight = 768;
+
+        SizePair() {
+            mPreview = new Size(mRequestedPreviewWidth, mRequestedPreviewHeight);
+            mPicture = new Size(mRequestedPreviewWidth, mRequestedPreviewWidth);
         }
 
         Size previewSize() {
@@ -275,27 +183,6 @@ public class CameraSource {
         Size pictureSize() {
             return mPicture;
         }
-    }
-
-    private static List<SizePair> generateValidPreviewSizeList(Camera camera) {
-        Camera.Parameters parameters = camera.getParameters();
-        List<Camera.Size> supportedPreviewSizes =
-                parameters.getSupportedPreviewSizes();
-        List<Camera.Size> supportedPictureSizes =
-                parameters.getSupportedPictureSizes();
-        List<SizePair> validPreviewSizes = new ArrayList<>();
-        for (android.hardware.Camera.Size previewSize : supportedPreviewSizes) {
-            float previewAspectRatio = (float) previewSize.width / (float) previewSize.height;
-
-            for (android.hardware.Camera.Size pictureSize : supportedPictureSizes) {
-                float pictureAspectRatio = (float) pictureSize.width / (float) pictureSize.height;
-                if (Math.abs(previewAspectRatio - pictureAspectRatio) < ASPECT_RATIO_TOLERANCE) {
-                    validPreviewSizes.add(new SizePair(previewSize, pictureSize));
-                    break;
-                }
-            }
-        }
-        return validPreviewSizes;
     }
 
     private int[] selectPreviewFpsRange(Camera camera, float desiredPreviewFps) {
@@ -314,34 +201,6 @@ public class CameraSource {
             }
         }
         return selectedFpsRange;
-    }
-
-    /**
-     * Calculates the correct rotation for the given camera id and sets the rotation in the
-     * parameters.  It also sets the camera's display orientation and rotation.
-     *
-     * @param parameters the camera parameters for which to set the rotation
-     * @param cameraId   the camera id to set rotation based on
-     */
-    private void setRotation(Camera camera, Camera.Parameters parameters, int cameraId) {
-
-        int degrees = 0;
-
-        CameraInfo cameraInfo = new CameraInfo();
-        Camera.getCameraInfo(cameraId, cameraInfo);
-
-        int angle;
-        int displayAngle;
-
-        angle = (cameraInfo.orientation - degrees + 360) % 360;
-        displayAngle = angle;
-
-
-        // This corresponds to the rotation constants in {@link Frame}.
-        mRotation = angle / 90;
-
-        camera.setDisplayOrientation(displayAngle);
-        parameters.setRotation(angle);
     }
 
     private byte[] createPreviewBuffer(Size previewSize) {
@@ -429,9 +288,6 @@ public class CameraSource {
                 }
 
                 if (!mBytesToByteBuffer.containsKey(data)) {
-                    Log.d(TAG,
-                            "Skipping frame.  Could not find ByteBuffer associated with the image " +
-                                    "data from the camera.");
                     return;
                 }
 
@@ -459,7 +315,6 @@ public class CameraSource {
                             // don't have it yet.
                             mLock.wait();
                         } catch (InterruptedException e) {
-                            Log.d(TAG, "Frame processing loop terminated.", e);
                             return;
                         }
                     }
@@ -477,7 +332,7 @@ public class CameraSource {
                                     mPreviewSize.getHeight(), ImageFormat.NV21)
                             .setId(mPendingFrameId)
                             .setTimestampMillis(mPendingTimeMillis)
-                            .setRotation(mRotation)
+                            .setRotation(1)
                             .build();
 
                     // Hold onto the frame data locally, so that we can use this for detection
@@ -493,8 +348,7 @@ public class CameraSource {
 
                 try {
                     mDetector.receiveFrame(outputFrame);
-                } catch (Throwable t) {
-                    Log.e(TAG, "Exception thrown from receiver.", t);
+                } catch (Throwable ignored) {
                 } finally {
                     mCamera.addCallbackBuffer(data.array());
                 }
