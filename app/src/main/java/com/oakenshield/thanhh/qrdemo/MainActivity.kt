@@ -30,9 +30,10 @@ class MainActivity : AppCompatActivity() {
             if (resultCode == Activity.RESULT_OK) {
 
                 val barcode = data.getParcelableExtra<Barcode>(BarcodeCaptureActivity.BarcodeObject)
-                tv_message.setText(R.string.barcode_success)
-                tv_code.text = barcode.displayValue
-
+                if (barcode?.displayValue != null) {
+                    tv_message.setText(R.string.barcode_success)
+                    tv_code.text = barcode.displayValue
+                }
             } else {
                 tv_message.text = String.format(
                     getString(R.string.barcode_error),

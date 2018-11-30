@@ -113,7 +113,7 @@ public class CameraSource {
         int requestedCameraId = getIdForRequestedCamera();
         Camera camera = Camera.open(requestedCameraId);
 
-        SizePair sizePair = new SizePair();
+        SizePair sizePair = new SizePair().defaultSize();
 
         Size pictureSize = sizePair.pictureSize();
         mPreviewSize = sizePair.previewSize();
@@ -164,16 +164,14 @@ public class CameraSource {
         return -1;
     }
 
-    private static class SizePair {
+    private class SizePair {
+
         private Size mPreview;
         private Size mPicture;
 
-        int mRequestedPreviewWidth = 1024;
-        int mRequestedPreviewHeight = 768;
-
         SizePair() {
-            mPreview = new Size(mRequestedPreviewWidth, mRequestedPreviewHeight);
-            mPicture = new Size(mRequestedPreviewWidth, mRequestedPreviewWidth);
+            mPreview = new Size(1024, 768);
+            mPicture = new Size(1024, 768);
         }
 
         Size previewSize() {
@@ -182,6 +180,10 @@ public class CameraSource {
 
         Size pictureSize() {
             return mPicture;
+        }
+
+        SizePair defaultSize() {
+            return this;
         }
     }
 

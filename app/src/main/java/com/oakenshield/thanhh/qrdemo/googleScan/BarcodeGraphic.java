@@ -3,6 +3,7 @@ package com.oakenshield.thanhh.qrdemo.googleScan;
 
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.CornerPathEffect;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import com.google.android.gms.vision.barcode.Barcode;
@@ -21,7 +22,13 @@ public class BarcodeGraphic extends GraphicOverlay.Graphic {
         mRectPaint = new Paint();
         mRectPaint.setColor(context.getResources().getColor(R.color.blue_90));
         mRectPaint.setStyle(Paint.Style.STROKE);
-        mRectPaint.setStrokeWidth(10.0f);
+        mRectPaint.setStrokeWidth(5.0f);
+
+        CornerPathEffect cornerPathEffect =
+                new CornerPathEffect(16f);
+
+        mRectPaint.setPathEffect(cornerPathEffect);
+
 
     }
 

@@ -5,6 +5,8 @@
     <color name="colorAccent">#D81B60</color>
 
     <!--blue-->
+    <color name="trans">#80000000</color>
+    <color name="black">#000000</color>
     <color name="blue_5">#E1F5FE</color>
     <color name="blue_10">#B3E5FC</color>
     <color name="blue_30">#4FC3F7</color>
