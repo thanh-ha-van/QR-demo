@@ -1,4 +1,3 @@
-
 package com.oakenshield.thanhh.qrdemo.googleScan;
 
 import android.content.Context;
@@ -8,12 +7,6 @@ import com.google.android.gms.vision.Tracker;
 import com.google.android.gms.vision.barcode.Barcode;
 import com.oakenshield.thanhh.qrdemo.googleScan.camera.GraphicOverlay;
 
-/**
- * Generic tracker which is used for tracking or reading a barcode (and can really be used for
- * any type of item).  This is used to receive newly detected items, add a graphical representation
- * to an overlay, update the graphics as the item changes, and remove the graphics when the item
- * goes away.
- */
 public class BarcodeGraphicTracker extends Tracker<Barcode> {
     private GraphicOverlay<BarcodeGraphic> mOverlay;
     private BarcodeGraphic mGraphic;
@@ -31,8 +24,6 @@ public class BarcodeGraphicTracker extends Tracker<Barcode> {
         this.mGraphic = mGraphic;
         if (context instanceof BarcodeUpdateListener) {
             this.mBarcodeUpdateListener = (BarcodeUpdateListener) context;
-        } else {
-            throw new RuntimeException("Hosting activity must implement BarcodeUpdateListener");
         }
     }
 

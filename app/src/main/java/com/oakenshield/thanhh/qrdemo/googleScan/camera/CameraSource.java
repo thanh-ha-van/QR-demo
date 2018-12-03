@@ -139,11 +139,6 @@ public class CameraSource {
         parameters.setFocusMode(mFocusMode);
         camera.setParameters(parameters);
 
-        // Four frame buffers are needed for working with the camera:
-        //
-        //   one for the frame that is currently being executed upon in doing detection
-        //   one for the next pending frame to process immediately upon completing detection
-        //   two for the frames that the camera uses to populate future preview images
         camera.setPreviewCallbackWithBuffer(new CameraPreviewCallback());
         camera.addCallbackBuffer(createPreviewBuffer(mPreviewSize));
         camera.addCallbackBuffer(createPreviewBuffer(mPreviewSize));
